@@ -1,0 +1,91 @@
+﻿@using System
+@using System.Collections.Generic
+@using System.Linq
+
+@{
+    ViewData["Title"] = "Dashboard";
+
+    var tasks = Context.Session.GetString("DeadlineTasks");
+    var deadlines = string.IsNullOrEmpty(tasks)
+        ? new List<Dictionary<string, string>>()
+        : System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, string>>>(tasks)
+          ?? new List<Dictionary<string, string>>();
+
+    var total = deadlines.Count;
+    var completed = deadlines.Count(t => t["Completed"] == "true");
+    var upcoming = total - completed;
+}
+
+<div class="dashboard">
+    <header class="welcome">
+        <p class="eyebrow">YOUR STUDENT WORKSPACE</p>
+        <h1>Welcome to DeadlineBuddy 👋</h1>
+        <p>Stay organised, manage your deadlines, and make time for success.</p>
+        <a class="primary-button" asp-action="AddDeadline">+ Add a deadline</a>
+    </header>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+
+    <section class="summary">
+        <div class="summary-card">
+            <span>📚</span>
+            <p>Total deadlines</p>
+            <h2>@total</h2>
+        </div>
+        <div class="summary-card">
+            <span>⏳</span>
+            <p>Outstanding</p>
+            <h2>@upcoming</h2>
+        </div>
+        <div class="summary-card">
+            <span>✅</span>
+            <p>Completed</p>
+            <h2>@completed</h2>
+        </div>
+    </section>
+
+    <section class="deadlines">
+        <div class="section-heading">
+            <h2>Your deadlines</h2>
+            <p>Keep track of your academic tasks and priorities.</p>
+        </div>
+
+        @if (deadlines.Count == 0)
+        {
+            <p>You have no saved deadlines yet. Add your first task to get started.</p>
+        }
+        else
+        {
+            @foreach (var task in deadlines.OrderBy(t => t["DueDate"]))
+            {
+                <div class="deadline-item">
+                    <div>
+                        <h3>@task["Title"]</h3>
+                        <p>@task["Subject"] · @task["DueDate"] · @task["Category"]</p>
+                        @if (task["Completed"] == "true")
+                        {
+                            <span class="priority medium">Completed</span>
+                        }
+                        else
+                        {
+                            <span class="priority @(task["Priority"].ToLower() == "high" ? "high" : "medium")">
+                                @task["Priority"] priority
+                            </span>
+                        }
+                    </div>
+
+                    @if (task["Completed"] != "true")
+                    {
+                        <form asp-action="CompleteDeadline" method="post">
+                            <input type="hidden" name="title" value="@task["Title"]" />
+                            <button type="submit" class="btn btn-success">Mark complete</button>
+                        </form>
+                    }
+                </div>
+            }
+        }
+    </section>
+</div>
